@@ -6,40 +6,74 @@ import http from 'http';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 
-const users = [
-  { id: '1', name: 'Helena' }, { id: '2', name: 'Jarmila' }
-]
+
 
 // The GraphQL schema
 //Schema = collection of type definitions
 const typeDefs = `#graphql
-  type User {
-    id: String
-    name: String
-  }
   type Query {
-    hello: String
-    users: [User]
+    me: User
+    users: [User!]
+    user(id: ID!): User
+    messages: [Message!]!
+    message(id: ID!): Message!
   }
-  
+  type User {
+    id: ID!
+    username: String!
+    messages: [Message!]
+  }
+  type Message {
+    id: ID!
+    text: String!
+    user: User!
+  }
 `;
 
+const users = [
+  { id: '1', username: 'Zlatka N', messageId: '1' }, { id: '2', username: 'Robiin W', messageId: '2' }
+]
+const messages = [{ id: '1', text: 'Message 1', userId: '1' }, { id: '2', text: 'Message 1', userId: '2' }]
+const me = users[0]
 // A map of functions which return data for the schema.
 const resolvers = {
   Query: {
-    hello: () => 'world',
-    users: () => users
+    me: (parent, args, { me }) => {
+      return users[0]
+    },
+    user: (parent, { id }) => {
+      return users[id]
+    },
+    users: () => users,
+    messages: () => messages,
+    message: (parent, { id }) => { return messages[id] }
   },
-
+  User: {
+    username: (parent) => {
+      return parent.username
+    },
+    messages: (user) => {
+      return messages.filter(message => message.userId === user.messageId)
+    }
+  },
+  Message: {
+    user: (parent, args, { me }) => {
+      return users.find(user => {
+        return user.id === parent.id
+      })
+    },
+  },
 };
 
 const app = express();
 const httpServer = http.createServer(app);
-
 // Set up Apollo Server
 const server = new ApolloServer({
   typeDefs,
   resolvers,
+  context: {
+    me: users[0]
+  },
   plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
 });
 await server.start();
