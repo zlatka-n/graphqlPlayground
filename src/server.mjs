@@ -6,18 +6,31 @@ import http from 'http';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 
+const users = [
+  { id: '1', name: 'Helena' }, { id: '2', name: 'Jarmila' }
+]
+
 // The GraphQL schema
+//Schema = collection of type definitions
 const typeDefs = `#graphql
+  type User {
+    id: String
+    name: String
+  }
   type Query {
     hello: String
+    users: [User]
   }
+  
 `;
 
 // A map of functions which return data for the schema.
 const resolvers = {
   Query: {
     hello: () => 'world',
+    users: () => users
   },
+
 };
 
 const app = express();
