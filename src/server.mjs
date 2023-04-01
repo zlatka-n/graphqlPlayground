@@ -5,7 +5,7 @@ import express from 'express';
 import http from 'http';
 import cors from 'cors';
 import bodyParser from 'body-parser';
-
+import { v4 as uuidv4 } from "uuid"
 
 
 // The GraphQL schema
@@ -18,20 +18,24 @@ const typeDefs = `#graphql
     messages: [Message!]!
     message(id: ID!): Message!
   }
+  type Mutation {
+    createMessage(text: String!): Message!
+    deleteMessage(id: ID!): Boolean!
+  }
   type User {
-    id: ID!
-    username: String!
-    messages: [Message!]
+    id: ID
+    username: String
+    messages: [Message]
   }
   type Message {
     id: ID!
     text: String!
-    user: User!
+    user: User
   }
 `;
 
 const users = [
-  { id: '1', username: 'Zlatka N', messageId: '1' }, { id: '2', username: 'Robiin W', messageId: '2' }
+  { id: '1', username: 'Zlatka N', messageIds: ['1'] }, { id: '2', username: 'Robiin W', messageIds: ['2'] }
 ]
 const messages = [{ id: '1', text: 'Message 1', userId: '1' }, { id: '2', text: 'Message 1', userId: '2' }]
 const me = users[0]
@@ -48,12 +52,36 @@ const resolvers = {
     messages: () => messages,
     message: (parent, { id }) => { return messages[id] }
   },
+  Mutation: {
+    createMessage: (parent, { text }, { me }) => {
+      const id = uuidv4()
+      const message = {
+        id,
+        text,
+      }
+
+      // messages[id] = message;
+      messages.push(message)
+      users[0].messageIds.push(id)
+
+      return message
+    },
+    deleteMessage: (parent, { id }) => {
+      const { [id]: message, ...otherMessages } = messages
+
+      if (!message) return false
+
+      messages = otherMessages
+
+      return true
+    }
+  },
   User: {
     username: (parent) => {
       return parent.username
     },
     messages: (user) => {
-      return messages.filter(message => message.userId === user.messageId)
+      return messages.filter(message => message.userId === user.id)
     }
   },
   Message: {
